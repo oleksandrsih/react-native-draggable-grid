@@ -75,6 +75,7 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
     height: 0,
   })
   const [activeItemIndex, setActiveItemIndex] = useState<undefined | number>()
+  const [isDragging, setIsDragging] = useState(false)
 
   const assessGridSize = (event: IOnLayoutEvent) => {
     if (!hadInitBlockSize) {
@@ -150,6 +151,8 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
     if (!activeItem) return false
     const { moveX:moveXOriginal, moveY } = gestureState
     const moveX = I18nManager.isRTL ? -moveXOriginal : moveXOriginal
+    setIsDragging(true)
+
     props.onDragging && props.onDragging(gestureState)
 
     const xChokeAmount = Math.max(0, activeBlockOffset.x + moveX - (gridLayout.width - blockWidth))
@@ -192,6 +195,7 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
   function onHandRelease() {
     const activeItem = getActiveItem()
     if (!activeItem) return false
+    setIsDragging(false)
     props.onDragRelease && props.onDragRelease(getSortData())
     setPanResponderCapture(false)
     activeItem.currentPosition.flattenOffset()
@@ -258,6 +262,13 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
 
     setPanResponderCapture(true)
     setActiveItemIndex(itemIndex)
+  }
+  function endLongPressAnimation() {
+    if (!props.dragStartAnimation) {
+      if (!isDragging) {
+        setActiveItemIndex(undefined)
+      }
+    }
   }
   function startDragStartAnimation() {
     if (!props.dragStartAnimation) {
@@ -357,7 +368,9 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
     })
   }
   useEffect(() => {
-    startDragStartAnimation()
+    if (activeItemIndex !== undefined) {
+      startDragStartAnimation()
+    }
   }, [activeItemIndex])
   useEffect(() => {
     if (hadInitBlockSize) {
@@ -375,6 +388,7 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
       <Block
         onPress={onBlockPress.bind(null, itemIndex)}
         onLongPress={setActiveBlock.bind(null, itemIndex, item.itemData)}
+        onLongPressOut={endLongPressAnimation}
         panHandlers={panResponder.panHandlers}
         style={getBlockStyle(itemIndex)}
         dragStartAnimationStyle={getDragStartAnimation(itemIndex)}
