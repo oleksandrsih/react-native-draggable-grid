@@ -55,6 +55,7 @@ interface IItem<DataType> {
   currentPosition: Animated.AnimatedValueXY
 }
 let activeBlockOffset = { x: 0, y: 0 }
+let dragStarted = false;
 
 export const DraggableGrid = function<DataType extends IBaseItemType>(
   props: IDraggableGridProps<DataType>,
@@ -127,6 +128,9 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
   function onStartDrag(_: GestureResponderEvent, gestureState: PanResponderGestureState) {
     const activeItem = getActiveItem()
     if (!activeItem) return false
+
+    dragStarted = true;
+
     props.onDragStart && props.onDragStart(activeItem.itemData)
     const { x0, y0, moveX, moveY } = gestureState
     const activeOrigin = blockPositions[orderMap[activeItem.key].order]
@@ -254,8 +258,9 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
   function setActiveBlock(itemIndex: number, item: DataType) {
     if (item.disabledDrag) return
 
-    props.onDragItemActive && props.onDragItemActive(item)
+    dragStarted = false;
 
+    props.onDragItemActive && props.onDragItemActive(item)
     setPanResponderCapture(true)
     setActiveItemIndex(itemIndex)
   }
@@ -375,6 +380,11 @@ export const DraggableGrid = function<DataType extends IBaseItemType>(
       <Block
         onPress={onBlockPress.bind(null, itemIndex)}
         onLongPress={setActiveBlock.bind(null, itemIndex, item.itemData)}
+        onPressOut={() => {
+          if (!dragStarted) {
+            onHandRelease();
+          }
+        }}
         panHandlers={panResponder.panHandlers}
         style={getBlockStyle(itemIndex)}
         dragStartAnimationStyle={getDragStartAnimation(itemIndex)}
